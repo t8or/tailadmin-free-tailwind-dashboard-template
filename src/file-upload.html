@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>File Upload | Serafina</title>
+  </head>
+  <body
+    x-data="{ 
+      page: 'fileUpload', 
+      loaded: true, 
+      darkMode: false, 
+      stickyMenu: false, 
+      sidebarToggle: false, 
+      scrollTop: false
+    }"
+    x-init="
+      darkMode = JSON.parse(localStorage.getItem('darkMode'));
+      $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <include src="./partials/preloader.html"></include>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <include src="./partials/sidebar.html"></include>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <!-- ===== Header Start ===== -->
+        <include src="./partials/header.html"></include>
+        <!-- ===== Header End ===== -->
+
+        <!-- ===== Main Content Start ===== -->
+        <main>
+          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+            <!-- Breadcrumb -->
+            <div class="mb-6">
+              <h2 class="text-title-md2 font-semibold text-black dark:text-white">
+                Upload Files
+              </h2>
+            </div>
+
+            <!-- Upload Area -->
+            <div 
+              x-data="fileUpload"
+              class="rounded-sm border border-stroke bg-white p-4 shadow-default dark:border-strokedark dark:bg-boxdark md:p-6 xl:p-9"
+              @dragover.prevent="dragActive = true"
+              @dragleave.prevent="dragActive = false"
+              @drop.prevent="
+                dragActive = false;
+                handleFiles($event.dataTransfer.files)
+              "
+            >
+              <!-- Upload Box -->
+              <div 
+                class="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-gray-200 p-8 dark:border-gray-700"
+                :class="{ 'border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10': dragActive }"
+              >
+                <svg class="h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+
+                <div class="text-center">
+                  <h3 class="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
+                    Drop files here or click to upload
+                  </h3>
+                  <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                    Supported formats: PDF, PNG, JPEG, Excel<br>
+                    Maximum file size: 50MB
+                  </p>
+                </div>
+
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls"
+                  class="hidden"
+                  x-ref="fileInput"
+                  @change="handleFiles($event.target.files)"
+                />
+                
+                <button
+                  @click="$refs.fileInput.click()"
+                  class="rounded-lg bg-brand-500 px-6 py-3 text-sm font-medium text-white hover:bg-brand-600"
+                >
+                  Select Files
+                </button>
+              </div>
+
+              <!-- File List -->
+              <div class="mt-8" x-show="files.length > 0">
+                <h4 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Selected Files
+                </h4>
+                <div class="space-y-3">
+                  <template x-for="(file, index) in files" :key="index">
+                    <div class="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+                      <div class="flex items-center gap-3">
+                        <svg class="h-8 w-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-3H9V7h2v6z"/>
+                        </svg>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="file.name"></p>
+                          <p class="text-xs text-gray-500 dark:text-gray-400" x-text="(file.size / 1024 / 1024).toFixed(2) + ' MB'"></p>
+                        </div>
+                      </div>
+                      <button 
+                        @click="files.splice(index, 1)"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                      >
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- Upload Button -->
+                <div class="mt-6 flex justify-end">
+                  <button
+                    @click="uploadFiles()"
+                    :disabled="uploading || files.length === 0"
+                    class="flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg
+                      class="h-5 w-5"
+                      :class="{ 'animate-spin': uploading }"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span x-text="uploading ? 'Uploading...' : 'Upload Files'"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+  </body>
+</html> 

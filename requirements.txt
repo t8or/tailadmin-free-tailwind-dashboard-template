@@ -1,0 +1,7 @@
+tesseract-ocr==5.3.3
+pytesseract==0.3.10
+pdfminer.six==20221105
+pandas==2.1.4
+numpy==1.26.3
+Pillow==10.1.0
+python-dotenv==1.0.0 

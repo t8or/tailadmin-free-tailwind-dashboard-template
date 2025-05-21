@@ -1,0 +1,15 @@
+---
+description: how to start this server
+globs: 
+---
+Always run in a new terminal window
+# Your rule content
+You have to start the datavabse first
+- npm run init-db
+
+
+Frontend is port 3000
+- npm start
+Backend is port 3001
+- npm run server
+

@@ -1,4 +1,17 @@
-last 1 version
->1%
-maintained node versions
+# Browsers that we support
+
+# Default/Modern browsers
+last 2 versions
+> 0.5%
 not dead
+
+# Desktop browsers
+Firefox ESR
+not IE 11
+
+# Mobile browsers
+iOS >= 12
+Android >= 8
+
+# Development
+not op_mini all

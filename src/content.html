@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Content | Serafina</title>
+  </head>
+  <body
+    x-data="{ 
+      page: 'content',
+      'loaded': true, 
+      'darkMode': false, 
+      'stickyMenu': false, 
+      'sidebarToggle': false, 
+      'scrollTop': false,
+      files: [],
+      processingFiles: new Set(),
+      showToast: false,
+      toastMessage: '',
+      toastType: 'success',
+      getFileTypeDisplay(fileType) {
+        if (!fileType) return 'UNKNOWN';
+        
+        const type = fileType.toLowerCase();
+        
+        // Handle special cases
+        if (type.includes('spreadsheetml') || type.includes('excel')) {
+          return 'EXCEL';
+        }
+        if (type.includes('csv')) {
+          return 'CSV';
+        }
+        
+        // If it's a MIME type (contains '/')
+        if (type.includes('/')) {
+          return type.split('/')[1].toUpperCase();
+        }
+        
+        // If it's just an extension
+        return type.toUpperCase();
+      },
+      async showNotification(message, type = 'success') {
+        this.toastMessage = message;
+        this.toastType = type;
+        this.showToast = true;
+        setTimeout(() => {
+          this.showToast = false;
+        }, 3000);
+      },
+      async fetchFiles() {
+        try {
+          // First fetch the regular files
+          const filesResponse = await fetch('/api/files');
+          if (!filesResponse.ok) {
+            console.error('Failed to fetch files:', filesResponse.status);
+            this.files = [];
+            return;
+          }
+          
+          const filesData = await filesResponse.json();
+          console.log('Fetched files:', filesData); // Debug log
+          
+          // Set files with is_extracted flag set to false by default
+          const regularFiles = filesData.files.map(file => ({
+            ...file,
+            is_extracted: false
+          }));
+          
+          // Try to fetch extracted files
+          try {
+            const extractedResponse = await fetch('/api/files/extracted');
+            if (extractedResponse.ok) {
+              const extractedData = await extractedResponse.json();
+              // Add extracted files to the list
+              const extractedFiles = extractedData.files.map(file => ({
+                ...file,
+                is_extracted: true
+              }));
+              this.files = [...regularFiles, ...extractedFiles];
+            } else {
+              this.files = regularFiles;
+            }
+          } catch (extractError) {
+            console.warn('Extracted files endpoint not available:', extractError);
+            this.files = regularFiles;
+          }
+          
+          console.log('Final files array:', this.files); // Debug log
+        } catch (error) {
+          console.error('Error fetching files:', error);
+          this.files = [];
+          this.showNotification('Failed to fetch files', 'error');
+        }
+      },
+      async deleteFile(fileId) {
+        if (!confirm('Are you sure you want to delete this file?')) {
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/api/files/${fileId}`, {
+            method: 'DELETE'
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to delete file');
+          }
+          
+          // First update the local state to remove the file
+          this.files = this.files.filter(file => file.id !== fileId);
+          
+          // Then fetch the updated list
+          await this.fetchFiles();
+          
+          // Show success notification after the list is updated
+          this.showNotification('File deleted successfully');
+        } catch (error) {
+          console.error('Error deleting file:', error);
+          this.showNotification('Failed to delete file: ' + error.message, 'error');
+        }
+      },
+      async extractText(fileId, fileName, fileType) {
+        if (this.processingFiles.has(fileId)) return;
+        
+        try {
+          this.processingFiles.add(fileId);
+          const response = await fetch(`/api/extract/${fileId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fileName,
+              fileType
+            })
+          });
+          
+          if (!response.ok) throw new Error('Failed to extract text');
+          
+          const result = await response.json();
+          if (result.success) {
+            // Show success notification
+            this.showNotification('Text extracted successfully!');
+            // Refresh the file list
+            await this.fetchFiles();
+          } else {
+            throw new Error(result.error || 'Failed to extract text');
+          }
+        } catch (error) {
+          console.error('Error extracting text:', error);
+          this.showNotification('Failed to extract text: ' + error.message, 'error');
+        } finally {
+          this.processingFiles.delete(fileId);
+        }
+      }
+    }"
+    x-init="
+      darkMode = JSON.parse(localStorage.getItem('darkMode'));
+      $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)));
+      fetchFiles();"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <include src="./partials/preloader.html"></include>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <include src="./partials/sidebar.html"></include>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <!-- Small Device Overlay Start -->
+        <include src="./partials/overlay.html" />
+        <!-- Small Device Overlay End -->
+
+        <!-- ===== Header Start ===== -->
+        <include src="./partials/header.html"></include>
+        <!-- ===== Header End ===== -->
+
+        <!-- ===== Main Content Start ===== -->
+        <main>
+          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+            <!-- Toast Notification -->
+            <div
+              x-show="showToast"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0 transform translate-y-2"
+              x-transition:enter-end="opacity-100 transform translate-y-0"
+              x-transition:leave="transition ease-in duration-200"
+              x-transition:leave-start="opacity-100 transform translate-y-0"
+              x-transition:leave-end="opacity-0 transform translate-y-2"
+              :class="{
+                'bg-green-500': toastType === 'success',
+                'bg-red-500': toastType === 'error'
+              }"
+              class="fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white shadow-lg z-50 flex items-center"
+            >
+              <span x-text="toastMessage"></span>
+              <button @click="showToast = false" class="ml-3 hover:text-gray-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Breadcrumb Start -->
+            <div x-data="{ pageName: `Content`}">
+              <include src="./partials/breadcrumb.html" />
+            </div>
+            <!-- Breadcrumb End -->
+
+            <div
+              class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6"
+            >
+              <div
+                class="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                    Uploaded Content
+                  </h3>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <button
+                    @click="fetchFiles()"
+                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              <div class="w-full overflow-x-auto">
+                <table class="min-w-full">
+                  <!-- table header start -->
+                  <thead>
+                    <tr class="border-gray-100 border-y dark:border-gray-800">
+                      <th class="py-3">
+                        <div class="flex items-center">
+                          <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
+                            File Name
+                          </p>
+                        </div>
+                      </th>
+                      <th class="py-3">
+                        <div class="flex items-center">
+                          <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
+                            Type
+                          </p>
+                        </div>
+                      </th>
+                      <th class="py-3">
+                        <div class="flex items-center">
+                          <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
+                            Size
+                          </p>
+                        </div>
+                      </th>
+                      <th class="py-3">
+                        <div class="flex items-center">
+                          <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
+                            Upload Date
+                          </p>
+                        </div>
+                      </th>
+                      <th class="py-3">
+                        <div class="flex items-center">
+                          <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
+                            Actions
+                          </p>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <!-- table header end -->
+
+                  <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    <template x-if="files.length === 0">
+                      <tr>
+                        <td colspan="5" class="py-8 text-center text-gray-500 dark:text-gray-400">
+                          No files uploaded yet
+                        </td>
+                      </tr>
+                    </template>
+                    <template x-for="file in files" :key="file.id">
+                      <tr>
+                        <td class="py-3">
+                          <div class="flex items-center">
+                            <div class="flex items-center gap-3">
+                              <div class="h-[50px] w-[50px] flex items-center justify-center bg-gray-100 rounded-md dark:bg-gray-800">
+                                <template x-if="file.is_extracted">
+                                  <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                </template>
+                                <template x-if="!file.is_extracted">
+                                  <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                  </svg>
+                                </template>
+                              </div>
+                              <div>
+                                <p class="font-medium text-gray-800 text-theme-sm dark:text-white/90" x-text="file.original_filename">
+                                </p>
+                                <span class="text-gray-500 text-theme-xs dark:text-gray-400" x-text="getFileTypeDisplay(file.file_type)">
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="py-3">
+                          <div class="flex items-center">
+                            <p class="text-gray-500 text-theme-sm dark:text-gray-400" x-text="getFileTypeDisplay(file.file_type)">
+                            </p>
+                          </div>
+                        </td>
+                        <td class="py-3">
+                          <div class="flex items-center">
+                            <p class="text-gray-500 text-theme-sm dark:text-gray-400" x-text="(file.file_size / 1024 / 1024).toFixed(2) + ' MB'">
+                            </p>
+                          </div>
+                        </td>
+                        <td class="py-3">
+                          <div class="flex items-center">
+                            <p class="text-gray-500 text-theme-sm dark:text-gray-400" x-text="new Date(file.upload_date).toLocaleDateString()">
+                            </p>
+                          </div>
+                        </td>
+                        <td class="py-3">
+                          <div class="flex items-center gap-2">
+                            <a
+                              :href="'/api/files/' + file.id + '/download'"
+                              class="inline-flex items-center justify-center w-8 h-8 text-gray-500 bg-gray-100 rounded-lg hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                            >
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </a>
+                            <button
+                              @click="extractText(file.id, file.original_filename, file.file_type)"
+                              :disabled="processingFiles.has(file.id) || file.is_extracted"
+                              :class="{
+                                'opacity-50 cursor-not-allowed': processingFiles.has(file.id) || file.is_extracted
+                              }"
+                              class="inline-flex items-center justify-center w-8 h-8 text-gray-500 bg-gray-100 rounded-lg hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                            >
+                              <template x-if="!processingFiles.has(file.id) && !file.is_extracted">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </template>
+                              <template x-if="processingFiles.has(file.id)">
+                                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                              </template>
+                              <template x-if="file.is_extracted">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </template>
+                            </button>
+                            <button
+                              @click="deleteFile(file.id)"
+                              class="inline-flex items-center justify-center w-8 h-8 text-red-500 bg-gray-100 rounded-lg hover:text-red-700 hover:bg-gray-200 dark:text-red-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-red-200"
+                            >
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+  </body>
+</html> 

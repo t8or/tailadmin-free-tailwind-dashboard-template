@@ -1,7 +1,16 @@
-const path = require("path");
-const glob = require("glob");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { globSync } from 'glob';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import autoprefixer from 'autoprefixer';
+
+console.log('Webpack config loading...');
+console.log('Node version:', process.version);
+console.log('Module type:', import.meta.url ? 'ESM' : 'CommonJS');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const INCLUDE_PATTERN =
   /<include\s+src=["'](.+?)["']\s*\/?>\s*(?:<\/include>)?/gis;
@@ -20,25 +29,19 @@ const processNestedHtml = (content, loaderContext, dir = null) =>
       });
 
 // HTML generation
-const paths = [];
 const generateHTMLPlugins = () =>
-  glob.sync("./src/*.html").map((dir) => {
+  globSync('./src/*.html').map((dir) => {
     const filename = path.basename(dir);
-
-    if (filename !== "404.html") {
-      paths.push(filename);
-    }
-
     return new HtmlWebpackPlugin({
       filename,
-      template: `./src/${filename}`,
-      favicon: `./src/images/favicon.ico`,
-      inject: "body",
+      template: dir,
+      inject: true,
     });
   });
 
-module.exports = {
+export default {
   mode: "development",
+  target: "web",
   entry: "./src/js/index.js",
   devServer: {
     static: {
@@ -47,6 +50,18 @@ module.exports = {
     compress: true,
     port: 3000,
     hot: true,
+    proxy: [{
+      context: ['/api'],
+      target: 'http://localhost:3001',
+      secure: false,
+      changeOrigin: true
+    }]
+  },
+  stats: {
+    modules: true,
+    reasons: true,
+    moduleTrace: true,
+    errorDetails: true
   },
   module: {
     rules: [
@@ -61,7 +76,7 @@ module.exports = {
         },
       },
       {
-        test: /\.css$/i,
+        test: /\.css$/,
         use: [
           MiniCssExtractPlugin.loader,
           "css-loader",
@@ -70,7 +85,7 @@ module.exports = {
             options: {
               postcssOptions: {
                 plugins: [
-                  require("autoprefixer")({
+                  autoprefixer({
                     overrideBrowserslist: ["last 2 versions"],
                   }),
                 ],
@@ -89,26 +104,48 @@ module.exports = {
       },
       {
         test: /\.html$/,
-        loader: "html-loader",
-        options: {
-          preprocessor: processNestedHtml,
-        },
+        use: [
+          {
+            loader: "html-loader",
+            options: {
+              preprocessor: processNestedHtml,
+            },
+          },
+        ],
       },
     ],
   },
   plugins: [
     ...generateHTMLPlugins(),
     new MiniCssExtractPlugin({
-      filename: "style.css",
-      chunkFilename: "style.css",
+      filename: "css/[name].css",
+      chunkFilename: "css/[id].css",
     }),
   ],
   output: {
-    filename: "bundle.js",
+    filename: "js/[name].bundle.js",
     path: path.resolve(__dirname, "build"),
     clean: true,
-    assetModuleFilename: "[path][name][ext]",
+    publicPath: "/",
+    assetModuleFilename: "assets/[name][ext]",
+    chunkFormat: "array-push",
+    environment: {
+      arrowFunction: true,
+      bigIntLiteral: false,
+      const: true,
+      destructuring: true,
+      dynamicImport: false,
+      forOf: true,
+      module: true,
+      optionalChaining: true,
+      templateLiteral: true
+    }
   },
-  target: "web", // fix for "browserslist" error message
-  stats: "errors-only", // suppress irrelevant log messages
+  resolve: {
+    extensions: ['.js', '.mjs', '.css', '.json'],
+    extensionAlias: {
+      '.js': ['.js', '.mjs']
+    },
+    modules: ['node_modules'],
+  },
 };

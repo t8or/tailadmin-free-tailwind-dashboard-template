@@ -1,5 +1,5 @@
 import jsVectorMap from "jsvectormap";
-import "jsvectormap/dist/maps/world";
+import "jsvectormap/dist/maps/world.js";
 
 const map01 = () => {
   const mapSelectorOne = document.querySelectorAll("#mapOne");

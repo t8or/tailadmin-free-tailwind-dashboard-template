@@ -1,0 +1,135 @@
+{
+  "structured_data": [
+    {
+      "property": {
+        "no_of_units": "183",
+        "stories": null,
+        "avg_unit_size": "863 SF",
+        "year_built": "1985",
+        "parking": "366 Spaces; 2.0 per Unit...",
+        "distance_to_transit": null,
+        "type": "Apartments - All",
+        "rent_type": "Market"
+      },
+      "owner": {
+        "name": "Western Wealth Capital",
+        "purchase_date": "Mar 2019",
+        "purchase_price": "$27,450,000 ($150,000/Unit)"
+      },
+      "absorption_rate": {
+        "current": "3 Units",
+        "competitor_total": null,
+        "submarket_total": "794 Units",
+        "submarket_avg": "3.3 Units"
+      },
+      "unitBreakdown": [
+        {
+          "_1stColumnValue": 116784826,
+          "percentage": 36.3,
+          "$perUnit": 1317,
+          "$perSF": 1.94,
+          "concessions": 10
+        },
+        {
+          "_1stColumnValue": 1177123,
+          "percentage": 28.7,
+          "$perUnit": 1398,
+          "$perSF": 1.81,
+          "concessions": 10
+        },
+        {
+          "_1stColumnValue": 1195824,
+          "percentage": 0,
+          "$perUnit": 1516,
+          "$perSF": 1.58,
+          "concessions": 10
+        },
+        {
+          "_1stColumnValue": 2186324,
+          "percentage": -28.3,
+          "$perUnit": 1454,
+          "$perSF": 1.68,
+          "concessions": 10
+        },
+        {
+          "_1stColumnValue": 2295816,
+          "percentage": 21.25,
+          "$perUnit": 1556,
+          "$perSF": 1.62,
+          "concessions": 10
+        },
+        {
+          "_1stColumnValue": 221000,
+          "percentage": null,
+          "$perUnit": 1626,
+          "$perSF": 1.63,
+          "concessions": 10
+        },
+        {
+          "_1stColumnValue": 221040,
+          "percentage": 16.87,
+          "$perUnit": 1683,
+          "$perSF": 1.62,
+          "concessions": 10
+        },
+        {
+          "totals": {
+            "all1Beds": {
+              "units": 771,
+              "averageSF": 955,
+              "percentage": 55.3,
+              "$perUnit": 1387,
+              "$perSF": 1.8,
+              "concessions": null
+            },
+            "all2Beds": {
+              "units": 962,
+              "averageSF": 884,
+              "percentage": 89.1,
+              "$perUnit": 1577,
+              "$perSF": 1.64,
+              "concessions": null
+            },
+            "totals": {
+              "units": 1733,
+              "averageSF": null,
+              "percentage": 137.1,
+              "$perUnit": 1478,
+              "$perSF": 1.71,
+              "concessions": null
+            }
+          }
+        }
+      ],
+      "siteAmenities": [
+        "Business Center",
+        "Clubhouse",
+        "Fitness Center",
+        "Grill",
+        "Laundry Facilities",
+        "Property Manager on Site"
+      ],
+      "recurringExpenses": {
+        "freeDogRent": true
+      },
+      "oneTimeExpenses": {
+        "adminFee": 200,
+        "applicationFee": 50
+      },
+      "petPolicy": {
+        "dogAllowed": true,
+        "expirationYear": 2025
+      },
+      "year": "2025",
+      "company": "CoStar Group",
+      "licensee": "RTT Capital",
+      "page": "3",
+      "report_id": "1568424"
+    }
+  ],
+  "metadata": {
+    "section": "full_document",
+    "page_number": 1,
+    "type": "pdf"
+  }
+}
